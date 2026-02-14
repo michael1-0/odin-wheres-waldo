@@ -10,6 +10,10 @@ import Leaderboard from "./pages/Leaderboard.tsx";
 import HowToPlay from "./pages/HowToPlay.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
+if (import.meta.hot) {
+  import.meta.hot.on("vite:beforeUpdate", () => console.clear());
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
@@ -19,7 +23,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="play" element={<Play />} />
           <Route path="leaderboard" element={<Leaderboard />} />
           <Route path="how-to-play" element={<HowToPlay />} />
-          <Route path="*" element={<NotFound/>}/>
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
     </BrowserRouter>
