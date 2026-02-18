@@ -1,0 +1,9 @@
+import { Router } from "express";
+import { gameEnd, gameGuess, gameStart, helloWorld, } from "../controllers/indexController.js";
+const indexRouter = Router();
+indexRouter.get("/", helloWorld);
+indexRouter.get("/game-start", gameStart);
+indexRouter.post("/game-guess", gameGuess);
+indexRouter.post("/game-end", gameEnd);
+export default indexRouter;
+//# sourceMappingURL=indexRouter.js.map

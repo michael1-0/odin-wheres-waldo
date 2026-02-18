@@ -10,61 +10,67 @@ import { createPortal } from "react-dom";
 interface Character {
   name: string;
   found: boolean;
-  x: number;
-  y: number;
+  x?: number;
+  y?: number;
 }
 
 function Play() {
-  const [waldo, setWaldo] = useState<Character>({
+  const [token, setToken] = useState<string>("");
+
+  const [waldo, setWaldo] = useState<Character | null>({
     name: "waldo",
     found: false,
-    x: 1585,
-    y: 622,
   });
-  const [odlaw, setOdlaw] = useState<Character>({
+  const [odlaw, setOdlaw] = useState<Character | null>({
     name: "odlaw",
     found: false,
-    x: 273,
-    y: 585,
   });
-  const [wizard, setWizard] = useState<Character>({
+  const [wizard, setWizard] = useState<Character | null>({
     name: "wizard",
     found: false,
-    x: 695,
-    y: 584,
   });
-  const foundChars = [waldo, odlaw, wizard].filter((c) => c.found);
+
+  const foundChars = [waldo, odlaw, wizard].filter(
+    (c): c is Character => c !== null && c.found,
+  );
+
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL}game-start`)
+      .then((response) => response.json())
+      .then((data) => {
+        setToken(data.sessionToken);
+      })
+      .catch((error) => console.log(error));
+  }, []);
 
   const [targetBox, setTargetBox] = useState<{
     x: number;
     y: number;
-    rangeX: Array<number>;
-    rangeY: Array<number>;
   } | null>(null);
   const targetBoxSize = { width: 60, height: 60 };
 
   const [isOpenModal, setIsOpenModal] = useState<boolean>(false);
-  const [elapsedMilliseconds, setElapsedMilliseconds] = useState<number>(0);
-  const elapsedMillisecondsRef = useRef<number>(0);
-  const timerStartRef = useRef<number | null>(null);
-  useEffect(() => {
-    elapsedMillisecondsRef.current = elapsedMilliseconds;
-  }, [elapsedMilliseconds]);
-  useEffect(() => {
-    if (isOpenModal) return;
+  // const [elapsedMilliseconds, setElapsedMilliseconds] = useState<number>(0);
+  // const elapsedMillisecondsRef = useRef<number>(0);
+  // const timerStartRef = useRef<number | null>(null);
+  // useEffect(() => {
+  //   elapsedMillisecondsRef.current = elapsedMilliseconds;
+  // }, [elapsedMilliseconds]);
+  // useEffect(() => {
+  //   if (isOpenModal) return;
 
-    if (timerStartRef.current === null) {
-      timerStartRef.current = Date.now() - elapsedMillisecondsRef.current;
-    }
+  //   if (timerStartRef.current === null) {
+  //     timerStartRef.current = Date.now() - elapsedMillisecondsRef.current;
+  //   }
 
-    const intervalId = setInterval(() => {
-      if (timerStartRef.current !== null) {
-        setElapsedMilliseconds(Date.now() - timerStartRef.current);
-      }
-    }, 10);
+  //   const intervalId = setInterval(() => {
+  //     if (timerStartRef.current !== null) {
+  //       setElapsedMilliseconds(Date.now() - timerStartRef.current);
+  //     }
+  //   }, 10);
 
-    return () => clearInterval(intervalId);
-  }, [isOpenModal]);
+  //   return () => clearInterval(intervalId);
+  // }, [isOpenModal]);
 
   const [isWrongGuessToastVisible, setIsWrongGuessToastVisible] =
     useState<boolean>(false);
@@ -84,26 +90,26 @@ function Play() {
     }, 0);
   };
 
-  function formatElapsedTime(totalMilliseconds: number) {
-    const totalCentiseconds = Math.floor(totalMilliseconds / 10);
-    const minutes = Math.floor(totalCentiseconds / 6000)
-      .toString()
-      .padStart(2, "0");
-    const seconds = Math.floor((totalCentiseconds % 6000) / 100)
-      .toString()
-      .padStart(2, "0");
-    const centiseconds = (totalCentiseconds % 100).toString().padStart(2, "0");
+  // function formatElapsedTime(totalMilliseconds: number) {
+  //   const totalCentiseconds = Math.floor(totalMilliseconds / 10);
+  //   const minutes = Math.floor(totalCentiseconds / 6000)
+  //     .toString()
+  //     .padStart(2, "0");
+  //   const seconds = Math.floor((totalCentiseconds % 6000) / 100)
+  //     .toString()
+  //     .padStart(2, "0");
+  //   const centiseconds = (totalCentiseconds % 100).toString().padStart(2, "0");
 
-    return `${minutes}:${seconds}.${centiseconds}`;
-  }
+  //   return `${minutes}:${seconds}.${centiseconds}`;
+  // }
 
   function resetGame() {
-    setWaldo({ name: "waldo", found: false, x: 1585, y: 622 });
-    setOdlaw({ name: "odlaw", found: false, x: 273, y: 600 });
-    setWizard({ name: "wizard", found: false, x: 695, y: 584 });
+    setWaldo({ name: "waldo", found: false });
+    setOdlaw({ name: "odlaw", found: false });
+    setWizard({ name: "wizard", found: false });
     setTargetBox(null);
-    timerStartRef.current = null;
-    setElapsedMilliseconds(0);
+    // timerStartRef.current = null;
+    // setElapsedMilliseconds(0);
     setIsOpenModal(false);
   }
 
@@ -153,20 +159,9 @@ function Play() {
               const x = e.clientX - rect.left;
               const y = e.clientY - rect.top;
 
-              const rangeX = [
-                x - targetBoxSize.width * (1 / 2),
-                x + targetBoxSize.width * (1 / 2),
-              ];
-              const rangeY = [
-                y - targetBoxSize.height * (1 / 2),
-                y + targetBoxSize.height * (1 / 2),
-              ];
-
               setTargetBox({
                 x,
                 y,
-                rangeX,
-                rangeY,
               });
             }}
             alt="beach map"
@@ -202,81 +197,161 @@ function Play() {
                   top: `${targetBox.y}px`,
                 }}
               >
-                <div
-                  className="flex justify-between items-center cursor-pointer hover:bg-gray-200 p-1 rounded-sm gap-2"
-                  onClick={() => {
-                    const isCorrect =
-                      waldo.x >= targetBox.rangeX[0] &&
-                      waldo.x <= targetBox.rangeX[1] &&
-                      waldo.y >= targetBox.rangeY[0] &&
-                      waldo.y <= targetBox.rangeY[1];
+                {waldo && !waldo.found && (
+                  <>
+                    <div
+                      className="flex justify-between items-center cursor-pointer hover:bg-gray-200 p-1 rounded-sm gap-2"
+                      onClick={() => {
+                        const data = JSON.stringify({
+                          sessionToken: token,
+                          characterName: waldo?.name,
+                          x: targetBox.x,
+                          y: targetBox.y,
+                        });
 
-                    if (isCorrect) {
-                      setWaldo({ ...waldo, found: true });
-                      if (odlaw.found && wizard.found) setIsOpenModal(true);
-                    } else {
-                      showWrongGuessToast();
-                    }
-                    setTargetBox(null);
-                  }}
-                >
-                  <div>Waldo</div>
-                  <img
-                    src={waldoSrc}
-                    alt="character waldo"
-                    className="rounded-full min-w-10 min-h-10 max-w-10 max-h-10"
-                  />
-                </div>
-                <div
-                  className="flex justify-between items-center cursor-pointer hover:bg-gray-200 p-1 rounded-sm gap-2"
-                  onClick={() => {
-                    const isCorrect =
-                      odlaw.x >= targetBox.rangeX[0] &&
-                      odlaw.x <= targetBox.rangeX[1] &&
-                      odlaw.y >= targetBox.rangeY[0] &&
-                      odlaw.y <= targetBox.rangeY[1];
+                        fetch(`${import.meta.env.VITE_API_URL}game-guess`, {
+                          method: "post",
+                          body: data,
+                          headers: { "Content-Type": "application/json" },
+                        })
+                          .then((response) => response.json())
+                          .then((data) => {
+                            if (data.allFound) {
+                              setToken(data.sessionToken);
+                              setIsOpenModal(true);
+                              return;
+                            }
 
-                    if (isCorrect) {
-                      setOdlaw({ ...odlaw, found: true });
-                      if (waldo.found && wizard.found) setIsOpenModal(true);
-                    } else {
-                      showWrongGuessToast();
-                    }
-                    setTargetBox(null);
-                  }}
-                >
-                  <div>Odlaw</div>
-                  <img
-                    src={odlawSrc}
-                    alt="character odlaw"
-                    className="rounded-full min-w-10 min-h-10 max-w-10 max-h-10"
-                  />
-                </div>
-                <div
-                  className="flex justify-between items-center cursor-pointer hover:bg-gray-200 p-1 rounded-sm gap-2"
-                  onClick={() => {
-                    const isCorrect =
-                      wizard.x >= targetBox.rangeX[0] &&
-                      wizard.x <= targetBox.rangeX[1] &&
-                      wizard.y >= targetBox.rangeY[0] &&
-                      wizard.y <= targetBox.rangeY[1];
+                            if (data.isCorrect) {
+                              setWaldo({
+                                name: "waldo",
+                                found: true,
+                                x: targetBox.x,
+                                y: targetBox.y,
+                              });
+                              setToken(data.sessionToken);
+                            } else {
+                              showWrongGuessToast();
+                            }
+                          })
+                          .catch((error) => {
+                            console.log(error);
+                          })
+                          .finally(() => setTargetBox(null));
+                      }}
+                    >
+                      <div>Waldo</div>
+                      <img
+                        src={waldoSrc}
+                        alt="character waldo"
+                        className="rounded-full min-w-10 min-h-10 max-w-10 max-h-10"
+                      />
+                    </div>
+                  </>
+                )}
+                {odlaw && !odlaw.found && (
+                  <>
+                    <div
+                      className="flex justify-between items-center cursor-pointer hover:bg-gray-200 p-1 rounded-sm gap-2"
+                      onClick={() => {
+                        const data = JSON.stringify({
+                          sessionToken: token,
+                          characterName: odlaw?.name,
+                          x: targetBox.x,
+                          y: targetBox.y,
+                        });
 
-                    if (isCorrect) {
-                      setWizard({ ...wizard, found: true });
-                      if (waldo.found && odlaw.found) setIsOpenModal(true);
-                    } else {
-                      showWrongGuessToast();
-                    }
-                    setTargetBox(null);
-                  }}
-                >
-                  <div>Wizard</div>
-                  <img
-                    src={wizardSrc}
-                    alt="character wizard"
-                    className="rounded-full min-w-10 min-h-10 max-w-10 max-h-10"
-                  />
-                </div>
+                        fetch(`${import.meta.env.VITE_API_URL}game-guess`, {
+                          method: "post",
+                          body: data,
+                          headers: { "Content-Type": "application/json" },
+                        })
+                          .then((response) => response.json())
+                          .then((data) => {
+                            if (data.allFound) {
+                              setToken(data.sessionToken);
+                              setIsOpenModal(true);
+                              return;
+                            }
+                            if (data.isCorrect) {
+                              setOdlaw({
+                                name: "odlaw",
+                                found: true,
+                                x: targetBox.x,
+                                y: targetBox.y,
+                              });
+                              setToken(data.sessionToken);
+                            } else {
+                              showWrongGuessToast();
+                            }
+                          })
+                          .catch((error) => {
+                            console.log(error);
+                          })
+                          .finally(() => setTargetBox(null));
+                      }}
+                    >
+                      <div>Odlaw</div>
+                      <img
+                        src={odlawSrc}
+                        alt="character odlaw"
+                        className="rounded-full min-w-10 min-h-10 max-w-10 max-h-10"
+                      />
+                    </div>
+                  </>
+                )}
+                {wizard && !wizard.found && (
+                  <>
+                    <div
+                      className="flex justify-between items-center cursor-pointer hover:bg-gray-200 p-1 rounded-sm gap-2"
+                      onClick={() => {
+                        const data = JSON.stringify({
+                          sessionToken: token,
+                          characterName: wizard?.name,
+                          x: targetBox.x,
+                          y: targetBox.y,
+                        });
+
+                        fetch(`${import.meta.env.VITE_API_URL}game-guess`, {
+                          method: "post",
+                          body: data,
+                          headers: { "Content-Type": "application/json" },
+                        })
+                          .then((response) => response.json())
+                          .then((data) => {
+                            if (data.allFound) {
+                              setToken(data.sessionToken);
+                              setIsOpenModal(true);
+                              return;
+                            }
+
+                            if (data.isCorrect) {
+                              setWizard({
+                                name: "wizard",
+                                found: true,
+                                x: targetBox.x,
+                                y: targetBox.y,
+                              });
+                              setToken(data.sessionToken);
+                            } else {
+                              showWrongGuessToast();
+                            }
+                          })
+                          .catch((error) => {
+                            console.log(error);
+                          })
+                          .finally(() => setTargetBox(null));
+                      }}
+                    >
+                      <div>Wizard</div>
+                      <img
+                        src={wizardSrc}
+                        alt="character wizard"
+                        className="rounded-full min-w-10 min-h-10 max-w-10 max-h-10"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             </>
           )}
@@ -287,7 +362,7 @@ function Play() {
               <form className=" bg-white flex flex-col items-stretch gap-4 p-5 rounded-sm shadow-md">
                 <div className="text-2xl text-center">You have finished!</div>
                 <div className="text-center text-3xl">
-                  {formatElapsedTime(elapsedMilliseconds)}
+                  {/* {formatElapsedTime(elapsedMilliseconds)} */}
                 </div>
                 <div className="flex flex-col gap-1">
                   <label>Name:</label>
@@ -330,7 +405,7 @@ function Play() {
             document.body,
           )}
         <div className="sticky bg-white bottom-0 text-4xl p-4 w-full text-center z-99999">
-          {formatElapsedTime(elapsedMilliseconds)}
+          {/* {formatElapsedTime(elapsedMilliseconds)} */}
         </div>
       </div>
     </div>
