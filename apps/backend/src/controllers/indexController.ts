@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import "dotenv/config";
+import { prisma } from "../db/prisma.ts";
 
 function helloWorld(req: Request, res: Response) {
   res.json({ hello: "world" });
@@ -22,6 +23,7 @@ const GAME_TOKEN_TTL = "20m";
 interface GameSessionPayload extends jwt.JwtPayload {
   sub: typeof GAME_TOKEN_SUBJECT;
   startedAtMs: number;
+  endedAtMs?: number;
   found: CharacterName[];
 }
 
@@ -42,14 +44,23 @@ function getJwtSecret(): string {
 }
 
 function signGameSession(
-  payload: Pick<GameSessionPayload, "startedAtMs" | "found">,
+  payload: {
+    startedAtMs: number;
+    found: CharacterName[];
+    endedAtMs?: number;
+  },
 ): string {
+  const tokenPayload = {
+    sub: GAME_TOKEN_SUBJECT,
+    startedAtMs: payload.startedAtMs,
+    found: payload.found,
+    ...(typeof payload.endedAtMs === "number"
+      ? { endedAtMs: payload.endedAtMs }
+      : {}),
+  };
+
   return jwt.sign(
-    {
-      sub: GAME_TOKEN_SUBJECT,
-      startedAtMs: payload.startedAtMs,
-      found: payload.found,
-    },
+    tokenPayload,
     getJwtSecret(),
     { expiresIn: GAME_TOKEN_TTL },
   );
@@ -75,6 +86,13 @@ function verifyGameSessionToken(token: unknown): GameSessionPayload {
   }
 
   if (
+    typeof decoded.endedAtMs !== "undefined" &&
+    typeof decoded.endedAtMs !== "number"
+  ) {
+    throw new Error("Invalid session end timestamp.");
+  }
+
+  if (
     !Array.isArray(decoded.found) ||
     !decoded.found.every((name) => isCharacterName(name))
   ) {
@@ -86,6 +104,9 @@ function verifyGameSessionToken(token: unknown): GameSessionPayload {
     sub: GAME_TOKEN_SUBJECT,
     startedAtMs: decoded.startedAtMs,
     found: decoded.found,
+    ...(typeof decoded.endedAtMs === "number"
+      ? { endedAtMs: decoded.endedAtMs }
+      : {}),
   };
 }
 
@@ -109,6 +130,7 @@ function gameStart(req: Request, res: Response) {
 
 function gameGuess(req: Request, res: Response) {
   try {
+    const now = Date.now();
     const { sessionToken, characterName, x, y } = req.body as {
       sessionToken?: unknown;
       characterName?: unknown;
@@ -151,15 +173,21 @@ function gameGuess(req: Request, res: Response) {
       ? [...new Set([...session.found, characterName])]
       : session.found;
 
+    const allFound = updatedFound.length === CHARACTER_NAMES.length;
+    const endedAtMs = allFound
+      ? (session.endedAtMs ?? now)
+      : undefined;
+
     const nextToken = signGameSession({
       startedAtMs: session.startedAtMs,
       found: updatedFound,
+      ...(typeof endedAtMs === "number" ? { endedAtMs } : {}),
     });
 
     res.json({
       isCorrect,
       found: updatedFound,
-      allFound: updatedFound.length === CHARACTER_NAMES.length,
+      allFound,
       sessionToken: nextToken,
     });
   } catch (error) {
@@ -178,4 +206,75 @@ function gameGuess(req: Request, res: Response) {
   }
 }
 
-export { helloWorld, gameStart, gameGuess };
+async function gameEnd(req: Request, res: Response) {
+  try {
+    const { sessionToken, playerName, message } = req.body as {
+      sessionToken?: unknown;
+      playerName?: unknown;
+      message?: unknown;
+    };
+
+    const session = verifyGameSessionToken(sessionToken);
+
+    if (session.found.length !== CHARACTER_NAMES.length) {
+      res.status(400).json({ error: "Game is not finished yet." });
+      return;
+    }
+
+    if (typeof session.endedAtMs !== "number") {
+      res.status(400).json({ error: "Missing game finish timestamp." });
+      return;
+    }
+
+    if (typeof playerName !== "string" || playerName.trim().length === 0) {
+      res.status(400).json({ error: "Player name is required." });
+      return;
+    }
+
+    const normalizedPlayerName = playerName.trim();
+
+    if (normalizedPlayerName.length > 24) {
+      res.status(400).json({ error: "Player name must be at most 24 characters." });
+      return;
+    }
+
+    if (typeof message !== "string" || message.trim().length === 0) {
+      res.status(400).json({ error: "Message is required." });
+      return;
+    }
+
+    const normalizedMessage = message.trim();
+    const endedAtMs = session.endedAtMs;
+    const elapsedMs = Math.max(0, endedAtMs - session.startedAtMs);
+
+    const score = await prisma.score.create({
+      data: {
+        playerName: normalizedPlayerName,
+        message: normalizedMessage,
+        elapsedMs,
+      },
+    });
+
+    return res.status(201).json({
+      score,
+      endedAtMs,
+      elapsedMs,
+      startedAtMs: session.startedAtMs,
+    });
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      res.status(401).json({ error: "Session expired. Start a new game." });
+      return;
+    }
+
+    if (error instanceof jwt.JsonWebTokenError) {
+      res.status(401).json({ error: "Invalid session token." });
+      return;
+    }
+
+    console.error("[gameEnd]", error);
+    res.status(400).json({ error: "Invalid game-end request." });
+  }
+}
+
+export { helloWorld, gameStart, gameGuess, gameEnd };

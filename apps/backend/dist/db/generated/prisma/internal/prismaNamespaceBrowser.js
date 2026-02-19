@@ -54,7 +54,8 @@ export const ScoreScalarFieldEnum = {
     id: 'id',
     playerName: 'playerName',
     elapsedMs: 'elapsedMs',
-    createdAt: 'createdAt'
+    createdAt: 'createdAt',
+    message: 'message'
 };
 export const SortOrder = {
     asc: 'asc',

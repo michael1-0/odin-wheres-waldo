@@ -1,5 +1,9 @@
 import jwt from "jsonwebtoken";
+import "dotenv/config";
 import { prisma } from "../db/prisma.js";
+function helloWorld(req, res) {
+    res.json({ hello: "world" });
+}
 const CHARACTER_NAMES = ["waldo", "odlaw", "wizard"];
 const CHARACTER_LOCATIONS = {
     waldo: { x: 1585, y: 622 },
@@ -10,7 +14,8 @@ const TARGET_BOX_SIZE = { width: 60, height: 60 };
 const GAME_TOKEN_SUBJECT = "waldo-game-session";
 const GAME_TOKEN_TTL = "20m";
 function isCharacterName(value) {
-    return typeof value === "string" && CHARACTER_NAMES.includes(value);
+    return (typeof value === "string" &&
+        CHARACTER_NAMES.includes(value));
 }
 function getJwtSecret() {
     const secret = process.env.JWT_SECRET;
@@ -20,11 +25,15 @@ function getJwtSecret() {
     return secret;
 }
 function signGameSession(payload) {
-    return jwt.sign({
+    const tokenPayload = {
         sub: GAME_TOKEN_SUBJECT,
         startedAtMs: payload.startedAtMs,
         found: payload.found,
-    }, getJwtSecret(), { expiresIn: GAME_TOKEN_TTL });
+        ...(typeof payload.endedAtMs === "number"
+            ? { endedAtMs: payload.endedAtMs }
+            : {}),
+    };
+    return jwt.sign(tokenPayload, getJwtSecret(), { expiresIn: GAME_TOKEN_TTL });
 }
 function verifyGameSessionToken(token) {
     if (typeof token !== "string" || token.length === 0) {
@@ -40,7 +49,12 @@ function verifyGameSessionToken(token) {
     if (typeof decoded.startedAtMs !== "number") {
         throw new Error("Invalid session start timestamp.");
     }
-    if (!Array.isArray(decoded.found) || !decoded.found.every((name) => isCharacterName(name))) {
+    if (typeof decoded.endedAtMs !== "undefined" &&
+        typeof decoded.endedAtMs !== "number") {
+        throw new Error("Invalid session end timestamp.");
+    }
+    if (!Array.isArray(decoded.found) ||
+        !decoded.found.every((name) => isCharacterName(name))) {
         throw new Error("Invalid found-characters payload.");
     }
     return {
@@ -48,14 +62,17 @@ function verifyGameSessionToken(token) {
         sub: GAME_TOKEN_SUBJECT,
         startedAtMs: decoded.startedAtMs,
         found: decoded.found,
+        ...(typeof decoded.endedAtMs === "number"
+            ? { endedAtMs: decoded.endedAtMs }
+            : {}),
     };
-}
-function helloWorld(req, res) {
-    res.json({ hello: "world" });
 }
 function gameStart(req, res) {
     try {
-        const sessionToken = signGameSession({ startedAtMs: Date.now(), found: [] });
+        const sessionToken = signGameSession({
+            startedAtMs: Date.now(),
+            found: [],
+        });
         res.json({
             sessionToken,
             characterNames: CHARACTER_NAMES,
@@ -69,6 +86,7 @@ function gameStart(req, res) {
 }
 function gameGuess(req, res) {
     try {
+        const now = Date.now();
         const { sessionToken, characterName, x, y } = req.body;
         if (!isCharacterName(characterName)) {
             res.status(400).json({ error: "Invalid character name." });
@@ -80,7 +98,9 @@ function gameGuess(req, res) {
         }
         const session = verifyGameSessionToken(sessionToken);
         if (session.found.includes(characterName)) {
-            res.status(409).json({ error: "Character already found.", found: session.found });
+            res
+                .status(409)
+                .json({ error: "Character already found.", found: session.found });
             return;
         }
         const actual = CHARACTER_LOCATIONS[characterName];
@@ -95,14 +115,19 @@ function gameGuess(req, res) {
         const updatedFound = isCorrect
             ? [...new Set([...session.found, characterName])]
             : session.found;
+        const allFound = updatedFound.length === CHARACTER_NAMES.length;
+        const endedAtMs = allFound
+            ? (session.endedAtMs ?? now)
+            : undefined;
         const nextToken = signGameSession({
             startedAtMs: session.startedAtMs,
             found: updatedFound,
+            ...(typeof endedAtMs === "number" ? { endedAtMs } : {}),
         });
         res.json({
             isCorrect,
             found: updatedFound,
-            allFound: updatedFound.length === CHARACTER_NAMES.length,
+            allFound,
             sessionToken: nextToken,
         });
     }
@@ -121,39 +146,45 @@ function gameGuess(req, res) {
 }
 async function gameEnd(req, res) {
     try {
-        const { sessionToken, playerName } = req.body;
+        const { sessionToken, playerName, message } = req.body;
         const session = verifyGameSessionToken(sessionToken);
         if (session.found.length !== CHARACTER_NAMES.length) {
-            res.status(400).json({ error: "Game is not complete yet." });
+            res.status(400).json({ error: "Game is not finished yet." });
             return;
         }
-        if (typeof playerName !== "string") {
+        if (typeof session.endedAtMs !== "number") {
+            res.status(400).json({ error: "Missing game finish timestamp." });
+            return;
+        }
+        if (typeof playerName !== "string" || playerName.trim().length === 0) {
             res.status(400).json({ error: "Player name is required." });
             return;
         }
-        const trimmedName = playerName.trim();
-        if (trimmedName.length < 1 || trimmedName.length > 24) {
-            res.status(400).json({ error: "Player name must be between 1 and 24 characters." });
+        const normalizedPlayerName = playerName.trim();
+        if (normalizedPlayerName.length > 24) {
+            res.status(400).json({ error: "Player name must be at most 24 characters." });
             return;
         }
-        const elapsedMs = Date.now() - session.startedAtMs;
-        if (!Number.isFinite(elapsedMs) || elapsedMs < 0) {
-            res.status(400).json({ error: "Invalid elapsed time." });
+        if (typeof message !== "string" || message.trim().length === 0) {
+            res.status(400).json({ error: "Message is required." });
             return;
         }
+        const normalizedMessage = message.trim();
+        const endedAtMs = session.endedAtMs;
+        const elapsedMs = Math.max(0, endedAtMs - session.startedAtMs);
         const score = await prisma.score.create({
             data: {
-                playerName: trimmedName,
+                playerName: normalizedPlayerName,
+                message: normalizedMessage,
                 elapsedMs,
             },
-            select: {
-                id: true,
-                playerName: true,
-                elapsedMs: true,
-                createdAt: true,
-            },
         });
-        res.status(201).json({ score });
+        return res.status(201).json({
+            score,
+            endedAtMs,
+            elapsedMs,
+            startedAtMs: session.startedAtMs,
+        });
     }
     catch (error) {
         if (error instanceof jwt.TokenExpiredError) {
@@ -165,7 +196,7 @@ async function gameEnd(req, res) {
             return;
         }
         console.error("[gameEnd]", error);
-        res.status(500).json({ error: "Failed to submit score." });
+        res.status(400).json({ error: "Invalid game-end request." });
     }
 }
 export { helloWorld, gameStart, gameGuess, gameEnd };

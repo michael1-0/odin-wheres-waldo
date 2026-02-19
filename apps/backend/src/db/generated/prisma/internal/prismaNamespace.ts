@@ -521,7 +521,8 @@ export const ScoreScalarFieldEnum = {
   id: 'id',
   playerName: 'playerName',
   elapsedMs: 'elapsedMs',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  message: 'message'
 } as const
 
 export type ScoreScalarFieldEnum = (typeof ScoreScalarFieldEnum)[keyof typeof ScoreScalarFieldEnum]

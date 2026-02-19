@@ -41,6 +41,7 @@ export declare const ScoreScalarFieldEnum: {
     readonly playerName: "playerName";
     readonly elapsedMs: "elapsedMs";
     readonly createdAt: "createdAt";
+    readonly message: "message";
 };
 export type ScoreScalarFieldEnum = (typeof ScoreScalarFieldEnum)[keyof typeof ScoreScalarFieldEnum];
 export declare const SortOrder: {

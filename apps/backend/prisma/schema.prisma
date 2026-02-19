@@ -18,6 +18,7 @@ model Score {
   playerName String   @db.VarChar(24)
   elapsedMs  Int
   createdAt  DateTime @default(now())
+  message    String
 
   @@map("scores")
 }

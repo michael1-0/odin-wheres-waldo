@@ -1,5 +1,11 @@
-import { Link } from "react-router";
-import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type SubmitEvent,
+} from "react";
 
 import waldoSrc from "../assets/character-icons/waldo.png";
 import odlawSrc from "../assets/character-icons/odlaw.png";
@@ -15,6 +21,7 @@ interface Character {
 }
 
 function Play() {
+  const navigate = useNavigate();
   const [token, setToken] = useState<string>("");
 
   const [waldo, setWaldo] = useState<Character | null>({
@@ -90,6 +97,9 @@ function Play() {
     }, 0);
   };
 
+  const [username, setUsername] = useState<string>("");
+  const [message, setMessage] = useState<string>("");
+
   // function formatElapsedTime(totalMilliseconds: number) {
   //   const totalCentiseconds = Math.floor(totalMilliseconds / 10);
   //   const minutes = Math.floor(totalCentiseconds / 6000)
@@ -111,6 +121,40 @@ function Play() {
     // timerStartRef.current = null;
     // setElapsedMilliseconds(0);
     setIsOpenModal(false);
+  }
+
+  function handleUsernameChange(
+    e: ChangeEvent<HTMLInputElement, HTMLInputElement>,
+  ) {
+    setUsername(e.target.value);
+  }
+  function handleMessageChange(
+    e: ChangeEvent<HTMLInputElement, HTMLInputElement>,
+  ) {
+    setMessage(e.target.value);
+  }
+
+  function handleGameEndSubmit(e: SubmitEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    const data = JSON.stringify({
+      playerName: username,
+      sessionToken: token,
+      message: message,
+    });
+
+    fetch(`${import.meta.env.VITE_API_URL}game-end`, {
+      body: data,
+      method: "post",
+      headers: { "Content-Type": "application/json" },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        console.log(data);
+
+        navigate("/leaderboard");
+      })
+      .catch((error) => console.log(error));
   }
 
   return (
@@ -359,7 +403,10 @@ function Play() {
         {isOpenModal &&
           createPortal(
             <div className="fixed inset-0 z-99999 backdrop-blur-xl flex items-center justify-center">
-              <form className=" bg-white flex flex-col items-stretch gap-4 p-5 rounded-sm shadow-md">
+              <form
+                className=" bg-white flex flex-col items-stretch gap-4 p-5 rounded-sm shadow-md"
+                onSubmit={(e) => handleGameEndSubmit(e)}
+              >
                 <div className="text-2xl text-center">You have finished!</div>
                 <div className="text-center text-3xl">
                   {/* {formatElapsedTime(elapsedMilliseconds)} */}
@@ -368,19 +415,24 @@ function Play() {
                   <label>Name:</label>
                   <input
                     type="text"
-                    placeholder="John Doe"
                     className="shadow-md p-2"
+                    placeholder="Super cool username"
+                    value={username}
+                    onChange={(e) => handleUsernameChange(e)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label>Message to the world:</label>
+                  <input
+                    type="text"
+                    className="shadow-md p-2"
+                    placeholder="Message to the world"
+                    value={message}
+                    onChange={(e) => handleMessageChange(e)}
                   />
                 </div>
                 <div className="flex gap-2 h-10">
-                  <button
-                    type="submit"
-                    className="flex-1 shadow-md rounded-sm"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      resetGame();
-                    }}
-                  >
+                  <button type="submit" className="flex-1 shadow-md rounded-sm">
                     Submit
                   </button>
                   <button
