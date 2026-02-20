@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import "dotenv/config";
 import { prisma } from "../db/prisma.ts";
+import { Prisma } from "../db/generated/prisma/client.ts";
 
 function helloWorld(req: Request, res: Response) {
   res.json({ hello: "world" });
@@ -274,6 +275,14 @@ async function gameEnd(req: Request, res: Response) {
 
     if (error instanceof jwt.JsonWebTokenError) {
       res.status(401).json({ error: "Invalid session token." });
+      return;
+    }
+
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      res.status(409).json({ error: "Player name is already taken." });
       return;
     }
 

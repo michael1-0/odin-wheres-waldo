@@ -142,6 +142,7 @@ function Play() {
 
   const [username, setUsername] = useState<string>("");
   const [message, setMessage] = useState<string>("");
+  const [submitError, setSubmitError] = useState<string>("");
 
   function formatElapsedTime(totalMilliseconds: number) {
     const totalCentiseconds = Math.floor(totalMilliseconds / 10);
@@ -162,6 +163,7 @@ function Play() {
     setWizard({ name: "wizard", found: false });
     setUsername("");
     setMessage("");
+    setSubmitError("");
     setTargetBox(null);
     setIsOpenModal(false);
     startGameSession();
@@ -170,16 +172,19 @@ function Play() {
   function handleUsernameChange(
     e: ChangeEvent<HTMLInputElement, HTMLInputElement>,
   ) {
+    setSubmitError("");
     setUsername(e.target.value);
   }
   function handleMessageChange(
     e: ChangeEvent<HTMLInputElement, HTMLInputElement>,
   ) {
+    setSubmitError("");
     setMessage(e.target.value);
   }
 
   function handleGameEndSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
+    setSubmitError("");
 
     const data = JSON.stringify({
       playerName: username,
@@ -192,13 +197,28 @@ function Play() {
       method: "post",
       headers: { "Content-Type": "application/json" },
     })
-      .then((response) => response.json())
-      .then((data) => {
-        console.log(data);
+      .then(async (response) => {
+        const responseData = await response.json();
+
+        if (!response.ok) {
+          const errorMessage =
+            typeof responseData?.error === "string"
+              ? responseData.error
+              : "Failed to submit score.";
+
+          if (response.status === 409) {
+            setSubmitError(errorMessage);
+            return;
+          }
+
+          throw new Error(errorMessage);
+        }
 
         navigate("/leaderboard");
       })
-      .catch((error) => console.log(error));
+      .catch((error) => {
+        setSubmitError(error.message ?? "Failed to submit score.");
+      });
   }
 
   function handleWaldoSubmissionClick() {
@@ -498,6 +518,9 @@ function Play() {
                     Restart
                   </button>
                 </div>
+                {submitError && (
+                  <div className="text-red-600 text-sm">{submitError}</div>
+                )}
               </form>
             </div>,
             document.body,
