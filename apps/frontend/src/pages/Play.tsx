@@ -41,11 +41,77 @@ function Play() {
     (c): c is Character => c !== null && c.found,
   );
 
-  useEffect(() => {
+  const [isOpenModal, setIsOpenModal] = useState<boolean>(false);
+  const [isSessionReady, setIsSessionReady] = useState<boolean>(false);
+  const [elapsedMilliseconds, setElapsedMilliseconds] = useState<number>(0);
+  const elapsedMillisecondsRef = useRef<number>(0);
+  const timerStartRef = useRef<number | null>(null);
+
+  function startGameSession(options?: { resetState?: boolean }) {
+    const requestStartedAt = performance.now();
+    const shouldResetState = options?.resetState ?? true;
+
+    if (shouldResetState) {
+      setIsSessionReady(false);
+      timerStartRef.current = null;
+      setElapsedMilliseconds(0);
+      elapsedMillisecondsRef.current = 0;
+    }
+
     fetch(`${import.meta.env.VITE_API_URL}game-start`)
       .then((response) => response.json())
       .then((data) => {
+        const requestRoundTripMs = performance.now() - requestStartedAt;
+        const initialElapsedMilliseconds = Math.max(
+          0,
+          data.serverNowMs - data.startedAtMs + requestRoundTripMs / 2,
+        );
+
         setToken(data.sessionToken);
+        setElapsedMilliseconds(initialElapsedMilliseconds);
+        elapsedMillisecondsRef.current = initialElapsedMilliseconds;
+        timerStartRef.current = Date.now() - initialElapsedMilliseconds;
+        setIsSessionReady(true);
+      })
+      .catch((error) => console.log(error));
+  }
+
+  useEffect(() => {
+    elapsedMillisecondsRef.current = elapsedMilliseconds;
+  }, [elapsedMilliseconds]);
+  useEffect(() => {
+    if (isOpenModal || !isSessionReady) return;
+
+    if (timerStartRef.current === null) {
+      timerStartRef.current = Date.now() - elapsedMillisecondsRef.current;
+    }
+
+    const intervalId = setInterval(() => {
+      if (timerStartRef.current !== null) {
+        setElapsedMilliseconds(Date.now() - timerStartRef.current);
+      }
+    }, 10);
+
+    return () => clearInterval(intervalId);
+  }, [isOpenModal, isSessionReady]);
+
+  useEffect(() => {
+    const requestStartedAt = performance.now();
+
+    fetch(`${import.meta.env.VITE_API_URL}game-start`)
+      .then((response) => response.json())
+      .then((data) => {
+        const requestRoundTripMs = performance.now() - requestStartedAt;
+        const initialElapsedMilliseconds = Math.max(
+          0,
+          data.serverNowMs - data.startedAtMs + requestRoundTripMs / 2,
+        );
+
+        setToken(data.sessionToken);
+        setElapsedMilliseconds(initialElapsedMilliseconds);
+        elapsedMillisecondsRef.current = initialElapsedMilliseconds;
+        timerStartRef.current = Date.now() - initialElapsedMilliseconds;
+        setIsSessionReady(true);
       })
       .catch((error) => console.log(error));
   }, []);
@@ -55,29 +121,6 @@ function Play() {
     y: number;
   } | null>(null);
   const targetBoxSize = { width: 60, height: 60 };
-
-  const [isOpenModal, setIsOpenModal] = useState<boolean>(false);
-  // const [elapsedMilliseconds, setElapsedMilliseconds] = useState<number>(0);
-  // const elapsedMillisecondsRef = useRef<number>(0);
-  // const timerStartRef = useRef<number | null>(null);
-  // useEffect(() => {
-  //   elapsedMillisecondsRef.current = elapsedMilliseconds;
-  // }, [elapsedMilliseconds]);
-  // useEffect(() => {
-  //   if (isOpenModal) return;
-
-  //   if (timerStartRef.current === null) {
-  //     timerStartRef.current = Date.now() - elapsedMillisecondsRef.current;
-  //   }
-
-  //   const intervalId = setInterval(() => {
-  //     if (timerStartRef.current !== null) {
-  //       setElapsedMilliseconds(Date.now() - timerStartRef.current);
-  //     }
-  //   }, 10);
-
-  //   return () => clearInterval(intervalId);
-  // }, [isOpenModal]);
 
   const [isWrongGuessToastVisible, setIsWrongGuessToastVisible] =
     useState<boolean>(false);
@@ -100,27 +143,28 @@ function Play() {
   const [username, setUsername] = useState<string>("");
   const [message, setMessage] = useState<string>("");
 
-  // function formatElapsedTime(totalMilliseconds: number) {
-  //   const totalCentiseconds = Math.floor(totalMilliseconds / 10);
-  //   const minutes = Math.floor(totalCentiseconds / 6000)
-  //     .toString()
-  //     .padStart(2, "0");
-  //   const seconds = Math.floor((totalCentiseconds % 6000) / 100)
-  //     .toString()
-  //     .padStart(2, "0");
-  //   const centiseconds = (totalCentiseconds % 100).toString().padStart(2, "0");
+  function formatElapsedTime(totalMilliseconds: number) {
+    const totalCentiseconds = Math.floor(totalMilliseconds / 10);
+    const minutes = Math.floor(totalCentiseconds / 6000)
+      .toString()
+      .padStart(2, "0");
+    const seconds = Math.floor((totalCentiseconds % 6000) / 100)
+      .toString()
+      .padStart(2, "0");
+    const centiseconds = (totalCentiseconds % 100).toString().padStart(2, "0");
 
-  //   return `${minutes}:${seconds}.${centiseconds}`;
-  // }
+    return `${minutes}:${seconds}.${centiseconds}`;
+  }
 
   function resetGame() {
     setWaldo({ name: "waldo", found: false });
     setOdlaw({ name: "odlaw", found: false });
     setWizard({ name: "wizard", found: false });
+    setUsername("");
+    setMessage("");
     setTargetBox(null);
-    // timerStartRef.current = null;
-    // setElapsedMilliseconds(0);
     setIsOpenModal(false);
+    startGameSession();
   }
 
   function handleUsernameChange(
@@ -408,9 +452,6 @@ function Play() {
                 onSubmit={(e) => handleGameEndSubmit(e)}
               >
                 <div className="text-2xl text-center">You have finished!</div>
-                <div className="text-center text-3xl">
-                  {/* {formatElapsedTime(elapsedMilliseconds)} */}
-                </div>
                 <div className="flex flex-col gap-1">
                   <label>Name:</label>
                   <input
@@ -457,7 +498,7 @@ function Play() {
             document.body,
           )}
         <div className="sticky bg-white bottom-0 text-4xl p-4 w-full text-center z-99999">
-          {/* {formatElapsedTime(elapsedMilliseconds)} */}
+          {formatElapsedTime(elapsedMilliseconds)}
         </div>
       </div>
     </div>

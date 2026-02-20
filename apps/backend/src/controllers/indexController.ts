@@ -112,13 +112,18 @@ function verifyGameSessionToken(token: unknown): GameSessionPayload {
 
 function gameStart(req: Request, res: Response) {
   try {
+    const startedAtMs = Date.now();
     const sessionToken = signGameSession({
-      startedAtMs: Date.now(),
+      startedAtMs,
       found: [],
     });
 
+    const serverNowMs = Date.now();
+
     res.json({
       sessionToken,
+      startedAtMs,
+      serverNowMs,
       characterNames: CHARACTER_NAMES,
       targetBoxSize: TARGET_BOX_SIZE,
     });
