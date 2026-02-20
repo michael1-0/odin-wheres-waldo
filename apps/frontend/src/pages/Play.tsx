@@ -23,6 +23,20 @@ interface Character {
 function Play() {
   const navigate = useNavigate();
   const [token, setToken] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  async function fetchWithLoading(
+    input: RequestInfo | URL,
+    init?: RequestInit,
+  ) {
+    setIsLoading(true);
+
+    try {
+      return await fetch(input, init);
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   const [waldo, setWaldo] = useState<Character | null>({
     name: "waldo",
@@ -58,7 +72,7 @@ function Play() {
       elapsedMillisecondsRef.current = 0;
     }
 
-    fetch(`${import.meta.env.VITE_API_URL}game-start`)
+    fetchWithLoading(`${import.meta.env.VITE_API_URL}game-start`)
       .then((response) => response.json())
       .then((data) => {
         const requestRoundTripMs = performance.now() - requestStartedAt;
@@ -96,24 +110,28 @@ function Play() {
   }, [isOpenModal, isSessionReady]);
 
   useEffect(() => {
-    const requestStartedAt = performance.now();
+    const timeoutId = setTimeout(() => {
+      const requestStartedAt = performance.now();
 
-    fetch(`${import.meta.env.VITE_API_URL}game-start`)
-      .then((response) => response.json())
-      .then((data) => {
-        const requestRoundTripMs = performance.now() - requestStartedAt;
-        const initialElapsedMilliseconds = Math.max(
-          0,
-          data.serverNowMs - data.startedAtMs + requestRoundTripMs / 2,
-        );
+      fetchWithLoading(`${import.meta.env.VITE_API_URL}game-start`)
+        .then((response) => response.json())
+        .then((data) => {
+          const requestRoundTripMs = performance.now() - requestStartedAt;
+          const initialElapsedMilliseconds = Math.max(
+            0,
+            data.serverNowMs - data.startedAtMs + requestRoundTripMs / 2,
+          );
 
-        setToken(data.sessionToken);
-        setElapsedMilliseconds(initialElapsedMilliseconds);
-        elapsedMillisecondsRef.current = initialElapsedMilliseconds;
-        timerStartRef.current = Date.now() - initialElapsedMilliseconds;
-        setIsSessionReady(true);
-      })
-      .catch((error) => console.log(error));
+          setToken(data.sessionToken);
+          setElapsedMilliseconds(initialElapsedMilliseconds);
+          elapsedMillisecondsRef.current = initialElapsedMilliseconds;
+          timerStartRef.current = Date.now() - initialElapsedMilliseconds;
+          setIsSessionReady(true);
+        })
+        .catch((error) => console.log(error));
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   const [targetBox, setTargetBox] = useState<{
@@ -192,7 +210,7 @@ function Play() {
       message: message,
     });
 
-    fetch(`${import.meta.env.VITE_API_URL}game-end`, {
+    fetchWithLoading(`${import.meta.env.VITE_API_URL}game-end`, {
       body: data,
       method: "post",
       headers: { "Content-Type": "application/json" },
@@ -231,7 +249,7 @@ function Play() {
       y: targetBox.y,
     });
 
-    fetch(`${import.meta.env.VITE_API_URL}game-guess`, {
+    fetchWithLoading(`${import.meta.env.VITE_API_URL}game-guess`, {
       method: "post",
       body: data,
       headers: { "Content-Type": "application/json" },
@@ -272,7 +290,7 @@ function Play() {
       y: targetBox.y,
     });
 
-    fetch(`${import.meta.env.VITE_API_URL}game-guess`, {
+    fetchWithLoading(`${import.meta.env.VITE_API_URL}game-guess`, {
       method: "post",
       body: data,
       headers: { "Content-Type": "application/json" },
@@ -312,7 +330,7 @@ function Play() {
       y: targetBox.y,
     });
 
-    fetch(`${import.meta.env.VITE_API_URL}game-guess`, {
+    fetchWithLoading(`${import.meta.env.VITE_API_URL}game-guess`, {
       method: "post",
       body: data,
       headers: { "Content-Type": "application/json" },
@@ -529,6 +547,13 @@ function Play() {
           createPortal(
             <div className="fixed top-20 left-1/2 -translate-x-1/2 z-99999 rounded-sm bg-red-600 px-4 py-3 text-white shadow-md">
               Wrong guess. Try again.
+            </div>,
+            document.body,
+          )}
+        {isLoading &&
+          createPortal(
+            <div className="fixed inset-0 bg-white/55 flex items-center justify-center z-999">
+              <div className="px-6 py-4 text-3xl">Loading...</div>
             </div>,
             document.body,
           )}
