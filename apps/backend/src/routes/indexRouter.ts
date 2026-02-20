@@ -8,7 +8,11 @@ import {
   helloWorld,
 } from "../controllers/indexController.ts";
 
+import scoreRouter from "./scoreRouter.ts";
+
 const indexRouter: RouterType = Router();
+
+indexRouter.use("/scores", scoreRouter);
 
 indexRouter.get("/", helloWorld);
 indexRouter.get("/game-start", gameStart);
