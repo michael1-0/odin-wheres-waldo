@@ -201,6 +201,128 @@ function Play() {
       .catch((error) => console.log(error));
   }
 
+  function handleWaldoSubmissionClick() {
+    if (!targetBox) return;
+
+    const data = JSON.stringify({
+      sessionToken: token,
+      characterName: waldo?.name,
+      x: targetBox.x,
+      y: targetBox.y,
+    });
+
+    fetch(`${import.meta.env.VITE_API_URL}game-guess`, {
+      method: "post",
+      body: data,
+      headers: { "Content-Type": "application/json" },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.allFound) {
+          setToken(data.sessionToken);
+          setIsOpenModal(true);
+          return;
+        }
+
+        if (data.isCorrect) {
+          setWaldo({
+            name: "waldo",
+            found: true,
+            x: targetBox.x,
+            y: targetBox.y,
+          });
+          setToken(data.sessionToken);
+        } else {
+          showWrongGuessToast();
+        }
+      })
+      .catch((error) => {
+        console.log(error);
+      })
+      .finally(() => setTargetBox(null));
+  }
+
+  function handleOdlawSubmissionClick() {
+    if (!targetBox) return;
+
+    const data = JSON.stringify({
+      sessionToken: token,
+      characterName: odlaw?.name,
+      x: targetBox.x,
+      y: targetBox.y,
+    });
+
+    fetch(`${import.meta.env.VITE_API_URL}game-guess`, {
+      method: "post",
+      body: data,
+      headers: { "Content-Type": "application/json" },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.allFound) {
+          setToken(data.sessionToken);
+          setIsOpenModal(true);
+          return;
+        }
+        if (data.isCorrect) {
+          setOdlaw({
+            name: "odlaw",
+            found: true,
+            x: targetBox.x,
+            y: targetBox.y,
+          });
+          setToken(data.sessionToken);
+        } else {
+          showWrongGuessToast();
+        }
+      })
+      .catch((error) => {
+        console.log(error);
+      })
+      .finally(() => setTargetBox(null));
+  }
+
+  function handleWizardSubmissionClick() {
+    if (!targetBox) return;
+
+    const data = JSON.stringify({
+      sessionToken: token,
+      characterName: wizard?.name,
+      x: targetBox.x,
+      y: targetBox.y,
+    });
+
+    fetch(`${import.meta.env.VITE_API_URL}game-guess`, {
+      method: "post",
+      body: data,
+      headers: { "Content-Type": "application/json" },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.allFound) {
+          setToken(data.sessionToken);
+          setIsOpenModal(true);
+          return;
+        }
+
+        if (data.isCorrect) {
+          setWizard({
+            name: "wizard",
+            found: true,
+            x: targetBox.x,
+            y: targetBox.y,
+          });
+          setToken(data.sessionToken);
+        } else {
+          showWrongGuessToast();
+        }
+      })
+      .catch((error) => {
+        console.log(error);
+      })
+      .finally(() => setTargetBox(null));
+  }
+
   return (
     <div className="flex-1 flex flex-col justify-center items-stretch">
       <div className="flex justify-center sticky top-0 z-99999">
@@ -289,44 +411,7 @@ function Play() {
                   <>
                     <div
                       className="flex justify-between items-center cursor-pointer hover:bg-gray-200 p-1 rounded-sm gap-2"
-                      onClick={() => {
-                        const data = JSON.stringify({
-                          sessionToken: token,
-                          characterName: waldo?.name,
-                          x: targetBox.x,
-                          y: targetBox.y,
-                        });
-
-                        fetch(`${import.meta.env.VITE_API_URL}game-guess`, {
-                          method: "post",
-                          body: data,
-                          headers: { "Content-Type": "application/json" },
-                        })
-                          .then((response) => response.json())
-                          .then((data) => {
-                            if (data.allFound) {
-                              setToken(data.sessionToken);
-                              setIsOpenModal(true);
-                              return;
-                            }
-
-                            if (data.isCorrect) {
-                              setWaldo({
-                                name: "waldo",
-                                found: true,
-                                x: targetBox.x,
-                                y: targetBox.y,
-                              });
-                              setToken(data.sessionToken);
-                            } else {
-                              showWrongGuessToast();
-                            }
-                          })
-                          .catch((error) => {
-                            console.log(error);
-                          })
-                          .finally(() => setTargetBox(null));
-                      }}
+                      onClick={handleWaldoSubmissionClick}
                     >
                       <div>Waldo</div>
                       <img
@@ -341,43 +426,7 @@ function Play() {
                   <>
                     <div
                       className="flex justify-between items-center cursor-pointer hover:bg-gray-200 p-1 rounded-sm gap-2"
-                      onClick={() => {
-                        const data = JSON.stringify({
-                          sessionToken: token,
-                          characterName: odlaw?.name,
-                          x: targetBox.x,
-                          y: targetBox.y,
-                        });
-
-                        fetch(`${import.meta.env.VITE_API_URL}game-guess`, {
-                          method: "post",
-                          body: data,
-                          headers: { "Content-Type": "application/json" },
-                        })
-                          .then((response) => response.json())
-                          .then((data) => {
-                            if (data.allFound) {
-                              setToken(data.sessionToken);
-                              setIsOpenModal(true);
-                              return;
-                            }
-                            if (data.isCorrect) {
-                              setOdlaw({
-                                name: "odlaw",
-                                found: true,
-                                x: targetBox.x,
-                                y: targetBox.y,
-                              });
-                              setToken(data.sessionToken);
-                            } else {
-                              showWrongGuessToast();
-                            }
-                          })
-                          .catch((error) => {
-                            console.log(error);
-                          })
-                          .finally(() => setTargetBox(null));
-                      }}
+                      onClick={handleOdlawSubmissionClick}
                     >
                       <div>Odlaw</div>
                       <img
@@ -392,44 +441,7 @@ function Play() {
                   <>
                     <div
                       className="flex justify-between items-center cursor-pointer hover:bg-gray-200 p-1 rounded-sm gap-2"
-                      onClick={() => {
-                        const data = JSON.stringify({
-                          sessionToken: token,
-                          characterName: wizard?.name,
-                          x: targetBox.x,
-                          y: targetBox.y,
-                        });
-
-                        fetch(`${import.meta.env.VITE_API_URL}game-guess`, {
-                          method: "post",
-                          body: data,
-                          headers: { "Content-Type": "application/json" },
-                        })
-                          .then((response) => response.json())
-                          .then((data) => {
-                            if (data.allFound) {
-                              setToken(data.sessionToken);
-                              setIsOpenModal(true);
-                              return;
-                            }
-
-                            if (data.isCorrect) {
-                              setWizard({
-                                name: "wizard",
-                                found: true,
-                                x: targetBox.x,
-                                y: targetBox.y,
-                              });
-                              setToken(data.sessionToken);
-                            } else {
-                              showWrongGuessToast();
-                            }
-                          })
-                          .catch((error) => {
-                            console.log(error);
-                          })
-                          .finally(() => setTargetBox(null));
-                      }}
+                      onClick={handleWizardSubmissionClick}
                     >
                       <div>Wizard</div>
                       <img
