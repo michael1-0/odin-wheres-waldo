@@ -9,6 +9,7 @@
 
     "build": "pnpm -r --if-present build",
     "lint": "pnpm -r --if-present lint",
+    "format": "pnpm -r --if-present format",
     "test": "pnpm -r --if-present test",
 
     "start": "pnpm --filter backend start",

@@ -101,9 +101,7 @@ function Leaderboard() {
 
                   return (
                     <Fragment key={score.id}>
-                      <tr
-                        className={topRankRowClass}
-                      >
+                      <tr className={topRankRowClass}>
                         <td
                           className={`px-2 py-3 tabular-nums ${index < 3 ? "font-semibold" : ""}`}
                         >
