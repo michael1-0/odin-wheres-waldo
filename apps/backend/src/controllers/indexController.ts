@@ -286,6 +286,14 @@ async function gameEnd(req: Request, res: Response) {
       return;
     }
 
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2000"
+    ) {
+      res.status(400).json({ error: "Message must be at most 200 characters." });
+      return;
+    }
+
     console.error("[gameEnd]", error);
     res.status(400).json({ error: "Invalid game-end request." });
   }
