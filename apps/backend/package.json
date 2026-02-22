@@ -7,7 +7,8 @@
     "dev": "tsx watch ./src/server.ts",
     "build": "tsc --build",
     "start": "node ./dist/server.js",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "format": "prettier ."
   },
   "type": "module",
   "packageManager": "pnpm@10.28.2",
@@ -29,6 +30,7 @@
     "@types/pg": "^8.16.0",
     "eslint": "^9.39.2",
     "globals": "^16.5.0",
+    "prettier": "3.8.1",
     "prisma": "^7.4.0",
     "tsx": "^4.21.0",
     "typescript": "~5.9.3",
