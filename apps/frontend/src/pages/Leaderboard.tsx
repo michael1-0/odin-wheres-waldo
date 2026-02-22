@@ -102,7 +102,7 @@ function Leaderboard() {
                   return (
                     <Fragment key={score.id}>
                       <tr
-                        className={`${topRankRowClass} hover:bg-black/5 transition-colors`}
+                        className={topRankRowClass}
                       >
                         <td
                           className={`px-2 py-3 tabular-nums ${index < 3 ? "font-semibold" : ""}`}
@@ -118,7 +118,7 @@ function Leaderboard() {
                         </td>
                       </tr>
                       <tr
-                        className={`${topRankRowClass} hover:bg-black/5 transition-colors ${index < scores.length - 1 ? "border-b" : ""}`}
+                        className={`${topRankRowClass} ${index < scores.length - 1 ? "border-b" : ""}`}
                       >
                         <td
                           colSpan={4}
