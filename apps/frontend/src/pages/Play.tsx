@@ -369,31 +369,31 @@ function Play() {
         </Link>
       </div>
       <div className=" p-4 flex flex-col justify-center items-center mt-20 gap-10 pb-0">
-        <div className="text-4xl">Find these guys:</div>
-        <div className="flex gap-4 justify-center">
-          <div className="flex flex-col justify-center items-center w-1/8">
+        <div className="text-4xl text-center">Find these guys:</div>
+        <div className="flex w-full max-w-md justify-center gap-3 sm:gap-4">
+          <div className="flex min-w-0 flex-1 flex-col items-center justify-center">
             <img
               src={waldoSrc}
               alt="character waldo"
-              className="border-2 rounded-full"
+              className="w-full max-w-20 border-2 rounded-full"
             />
-            <div className="text-xl">Waldo</div>
+            <div className="text-lg sm:text-xl">Waldo</div>
           </div>
-          <div className="flex flex-col justify-center items-center w-1/8">
+          <div className="flex min-w-0 flex-1 flex-col items-center justify-center">
             <img
               src={odlawSrc}
               alt="character odlaw"
-              className="border-2 rounded-full"
+              className="w-full max-w-20 border-2 rounded-full"
             />
-            <div className="text-xl">Odlaw</div>
+            <div className="text-lg sm:text-xl">Odlaw</div>
           </div>
-          <div className="flex flex-col justify-center items-center w-1/8">
+          <div className="flex min-w-0 flex-1 flex-col items-center justify-center">
             <img
               src={wizardSrc}
               alt="character wizard"
-              className="border-2 rounded-full"
+              className="w-full max-w-20 border-2 rounded-full"
             />
-            <div className="text-xl">Wizard</div>
+            <div className="text-lg sm:text-xl">Wizard</div>
           </div>
         </div>
         <div className="w-fit overflow-x-auto overflow-y-hidden relative">
