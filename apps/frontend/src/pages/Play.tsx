@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router";
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -20,23 +21,29 @@ interface Character {
   y?: number;
 }
 
+interface GameStartResponse {
+  sessionToken: string;
+  startedAtMs: number;
+  serverNowMs: number;
+}
+
 function Play() {
   const navigate = useNavigate();
   const [token, setToken] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  async function fetchWithLoading(
-    input: RequestInfo | URL,
-    init?: RequestInit,
-  ) {
-    setIsLoading(true);
+  const fetchWithLoading = useCallback(
+    async (input: RequestInfo | URL, init?: RequestInit) => {
+      setIsLoading(true);
 
-    try {
-      return await fetch(input, init);
-    } finally {
-      setIsLoading(false);
-    }
-  }
+      try {
+        return await fetch(input, init);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [],
+  );
 
   const [waldo, setWaldo] = useState<Character | null>({
     name: "waldo",
@@ -61,34 +68,51 @@ function Play() {
   const elapsedMillisecondsRef = useRef<number>(0);
   const timerStartRef = useRef<number | null>(null);
 
-  function startGameSession(options?: { resetState?: boolean }) {
-    const requestStartedAt = performance.now();
-    const shouldResetState = options?.resetState ?? true;
+  const getInitialElapsedMilliseconds = useCallback(
+    (data: GameStartResponse) => {
+      return Math.max(0, data.serverNowMs - data.startedAtMs);
+    },
+    [],
+  );
 
-    if (shouldResetState) {
-      setIsSessionReady(false);
-      timerStartRef.current = null;
-      setElapsedMilliseconds(0);
-      elapsedMillisecondsRef.current = 0;
+  const warmBackend = useCallback(async () => {
+    try {
+      await fetch(`${import.meta.env.VITE_API_URL}`);
+    } catch (error) {
+      console.log(error);
     }
+  }, []);
 
-    fetchWithLoading(`${import.meta.env.VITE_API_URL}game-start`)
-      .then((response) => response.json())
-      .then((data) => {
-        const requestRoundTripMs = performance.now() - requestStartedAt;
-        const initialElapsedMilliseconds = Math.max(
-          0,
-          data.serverNowMs - data.startedAtMs + requestRoundTripMs / 2,
-        );
+  const startGameSession = useCallback(
+    (options?: { resetState?: boolean }) => {
+      const shouldResetState = options?.resetState ?? true;
 
-        setToken(data.sessionToken);
-        setElapsedMilliseconds(initialElapsedMilliseconds);
-        elapsedMillisecondsRef.current = initialElapsedMilliseconds;
-        timerStartRef.current = Date.now() - initialElapsedMilliseconds;
-        setIsSessionReady(true);
-      })
-      .catch((error) => console.log(error));
-  }
+      if (shouldResetState) {
+        setIsSessionReady(false);
+        timerStartRef.current = null;
+        setElapsedMilliseconds(0);
+        elapsedMillisecondsRef.current = 0;
+      }
+
+      warmBackend()
+        .then(() =>
+          fetchWithLoading(`${import.meta.env.VITE_API_URL}game-start`),
+        )
+        .then((response) => response.json())
+        .then((data: GameStartResponse) => {
+          const initialElapsedMilliseconds =
+            getInitialElapsedMilliseconds(data);
+
+          setToken(data.sessionToken);
+          setElapsedMilliseconds(initialElapsedMilliseconds);
+          elapsedMillisecondsRef.current = initialElapsedMilliseconds;
+          timerStartRef.current = Date.now() - initialElapsedMilliseconds;
+          setIsSessionReady(true);
+        })
+        .catch((error) => console.log(error));
+    },
+    [fetchWithLoading, getInitialElapsedMilliseconds, warmBackend],
+  );
 
   useEffect(() => {
     elapsedMillisecondsRef.current = elapsedMilliseconds;
@@ -110,29 +134,8 @@ function Play() {
   }, [isOpenModal, isSessionReady]);
 
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      const requestStartedAt = performance.now();
-
-      fetchWithLoading(`${import.meta.env.VITE_API_URL}game-start`)
-        .then((response) => response.json())
-        .then((data) => {
-          const requestRoundTripMs = performance.now() - requestStartedAt;
-          const initialElapsedMilliseconds = Math.max(
-            0,
-            data.serverNowMs - data.startedAtMs + requestRoundTripMs / 2,
-          );
-
-          setToken(data.sessionToken);
-          setElapsedMilliseconds(initialElapsedMilliseconds);
-          elapsedMillisecondsRef.current = initialElapsedMilliseconds;
-          timerStartRef.current = Date.now() - initialElapsedMilliseconds;
-          setIsSessionReady(true);
-        })
-        .catch((error) => console.log(error));
-    }, 0);
-
-    return () => clearTimeout(timeoutId);
-  }, []);
+    startGameSession({ resetState: true });
+  }, [startGameSession]);
 
   const [targetBox, setTargetBox] = useState<{
     x: number;
