@@ -6,7 +6,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx watch ./src/server.ts",
     "build": "tsc --build",
-    "start": "node ./dist/server.js"
+    "start": "node ./dist/server.js",
+    "lint": "eslint ."
   },
   "type": "module",
   "packageManager": "pnpm@10.28.2",
@@ -20,13 +21,17 @@
     "pg": "^8.18.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.10.11",
     "@types/pg": "^8.16.0",
+    "eslint": "^9.39.2",
+    "globals": "^16.5.0",
     "prisma": "^7.4.0",
     "tsx": "^4.21.0",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.54.0"
   }
 }
