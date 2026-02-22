@@ -94,10 +94,10 @@ function Play() {
         elapsedMillisecondsRef.current = 0;
       }
 
+      setIsLoading(true);
+
       warmBackend()
-        .then(() =>
-          fetchWithLoading(`${import.meta.env.VITE_API_URL}game-start`),
-        )
+        .then(() => fetch(`${import.meta.env.VITE_API_URL}game-start`))
         .then((response) => response.json())
         .then((data: GameStartResponse) => {
           const initialElapsedMilliseconds =
@@ -109,9 +109,10 @@ function Play() {
           timerStartRef.current = Date.now() - initialElapsedMilliseconds;
           setIsSessionReady(true);
         })
-        .catch((error) => console.log(error));
+        .catch((error) => console.log(error))
+        .finally(() => setIsLoading(false));
     },
-    [fetchWithLoading, getInitialElapsedMilliseconds, warmBackend],
+    [getInitialElapsedMilliseconds, warmBackend],
   );
 
   useEffect(() => {
