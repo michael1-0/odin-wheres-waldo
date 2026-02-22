@@ -552,7 +552,7 @@ function Play() {
           )}
         {isLoading &&
           createPortal(
-            <div className="fixed inset-0 bg-white/55 flex items-center justify-center z-99999">
+            <div className="fixed inset-0 flex items-center justify-center z-99999">
               <div className="px-6 py-4 text-3xl bg-white rounded-sm shadow-lg">
                 Loading...
               </div>
