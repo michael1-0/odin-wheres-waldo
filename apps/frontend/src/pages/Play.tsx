@@ -10,7 +10,7 @@ import {
 import waldoSrc from "../assets/character-icons/waldo.png";
 import odlawSrc from "../assets/character-icons/odlaw.png";
 import wizardSrc from "../assets/character-icons/wizard.png";
-import mapSrc from "../assets/image.png";
+import mapSrc from "../assets/image.webp";
 import { createPortal } from "react-dom";
 
 interface Character {
