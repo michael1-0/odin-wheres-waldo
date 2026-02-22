@@ -1,11 +1,12 @@
 import { Link } from "react-router";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 
 type Score = {
   id: string;
   playerName: string;
   elapsedMs: number;
   createdAt: string;
+  message: string | null;
 };
 
 type ScoresResponse = {
@@ -87,7 +88,7 @@ function Leaderboard() {
                   <th>Date</th>
                 </tr>
               </thead>
-              <tbody className="[&>tr:not(:last-child)]:border-b">
+              <tbody>
                 {scores.map((score, index) => {
                   const topRankRowClass =
                     index === 0
@@ -99,23 +100,34 @@ function Leaderboard() {
                           : "";
 
                   return (
-                    <tr
-                      key={score.id}
-                      className={`${topRankRowClass} hover:bg-black/5 transition-colors`}
-                    >
-                      <td
-                        className={`px-2 py-3 tabular-nums ${index < 3 ? "font-semibold" : ""}`}
+                    <Fragment key={score.id}>
+                      <tr
+                        className={`${topRankRowClass} hover:bg-black/5 transition-colors`}
                       >
-                        {index + 1}
-                      </td>
-                      <td className="px-2 py-3">{score.playerName}</td>
-                      <td className="px-2 py-3 font-mono tabular-nums">
-                        {formatElapsedTime(score.elapsedMs)}
-                      </td>
-                      <td className="px-2 py-3 whitespace-nowrap">
-                        {formatCreatedAt(score.createdAt)}
-                      </td>
-                    </tr>
+                        <td
+                          className={`px-2 py-3 tabular-nums ${index < 3 ? "font-semibold" : ""}`}
+                        >
+                          {index + 1}
+                        </td>
+                        <td className="px-2 py-3">{score.playerName}</td>
+                        <td className="px-2 py-3 font-mono tabular-nums">
+                          {formatElapsedTime(score.elapsedMs)}
+                        </td>
+                        <td className="px-2 py-3 whitespace-nowrap">
+                          {formatCreatedAt(score.createdAt)}
+                        </td>
+                      </tr>
+                      <tr
+                        className={`${topRankRowClass} hover:bg-black/5 transition-colors ${index < scores.length - 1 ? "border-b" : ""}`}
+                      >
+                        <td
+                          colSpan={4}
+                          className="px-2 pb-3 text-xs opacity-80"
+                        >
+                          Message: {score.message ?? "-"}
+                        </td>
+                      </tr>
+                    </Fragment>
                   );
                 })}
               </tbody>
