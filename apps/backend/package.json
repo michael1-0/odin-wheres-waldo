@@ -8,7 +8,7 @@
     "build": "tsc --build",
     "start": "node ./dist/server.js",
     "lint": "eslint .",
-    "format": "prettier ."
+    "format": "prettier . --write"
   },
   "type": "module",
   "packageManager": "pnpm@10.28.2",

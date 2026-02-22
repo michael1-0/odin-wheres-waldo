@@ -44,13 +44,11 @@ function getJwtSecret(): string {
   return secret;
 }
 
-function signGameSession(
-  payload: {
-    startedAtMs: number;
-    found: CharacterName[];
-    endedAtMs?: number;
-  },
-): string {
+function signGameSession(payload: {
+  startedAtMs: number;
+  found: CharacterName[];
+  endedAtMs?: number;
+}): string {
   const tokenPayload = {
     sub: GAME_TOKEN_SUBJECT,
     startedAtMs: payload.startedAtMs,
@@ -60,11 +58,7 @@ function signGameSession(
       : {}),
   };
 
-  return jwt.sign(
-    tokenPayload,
-    getJwtSecret(),
-    { expiresIn: GAME_TOKEN_TTL },
-  );
+  return jwt.sign(tokenPayload, getJwtSecret(), { expiresIn: GAME_TOKEN_TTL });
 }
 
 function verifyGameSessionToken(token: unknown): GameSessionPayload {
@@ -180,9 +174,7 @@ function gameGuess(req: Request, res: Response) {
       : session.found;
 
     const allFound = updatedFound.length === CHARACTER_NAMES.length;
-    const endedAtMs = allFound
-      ? (session.endedAtMs ?? now)
-      : undefined;
+    const endedAtMs = allFound ? (session.endedAtMs ?? now) : undefined;
 
     const nextToken = signGameSession({
       startedAtMs: session.startedAtMs,
@@ -240,7 +232,9 @@ async function gameEnd(req: Request, res: Response) {
     const normalizedPlayerName = playerName.trim();
 
     if (normalizedPlayerName.length > 24) {
-      res.status(400).json({ error: "Player name must be at most 24 characters." });
+      res
+        .status(400)
+        .json({ error: "Player name must be at most 24 characters." });
       return;
     }
 
@@ -290,7 +284,9 @@ async function gameEnd(req: Request, res: Response) {
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2000"
     ) {
-      res.status(400).json({ error: "Message must be at most 200 characters." });
+      res
+        .status(400)
+        .json({ error: "Message must be at most 200 characters." });
       return;
     }
 
