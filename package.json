@@ -3,8 +3,16 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "pnpm -r -stream dev"
+    "dev": "pnpm -r --stream dev",
+    "dev:backend": "pnpm --filter backend dev",
+    "dev:frontend": "pnpm --filter frontend dev",
+
+    "build": "pnpm -r --if-present build",
+    "lint": "pnpm -r --if-present lint",
+    "test": "pnpm -r --if-present test",
+
+    "start": "pnpm --filter backend start",
+    "preview": "pnpm --filter frontend preview"
   },
   "packageManager": "pnpm@10.28.2"
 }
