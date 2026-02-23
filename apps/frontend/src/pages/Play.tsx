@@ -138,6 +138,18 @@ function Play() {
     startGameSession({ resetState: true });
   }, [startGameSession]);
 
+  useEffect(() => {
+    if (!isLoading) return;
+
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [isLoading]);
+
   const [targetBox, setTargetBox] = useState<{
     x: number;
     y: number;
